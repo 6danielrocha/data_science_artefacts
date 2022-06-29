@@ -1,0 +1,4 @@
+Mercado de Trabalho
+Cientista de Dados
+Engenheiro de Machine Learning
+Engenheiro de IA
