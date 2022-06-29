@@ -1,0 +1,58 @@
+# Carregando Dados no Oracle
+
+
+########### Conectar no SO como usuário oracle ###########
+
+
+# Cria o schema no Banco de Dados e concede privilégios
+sqlplus / as sysdba
+create user aluno identified by dsahadoop;
+grant connect, resource, unlimited tablespace to aluno;
+
+
+# Cria uma tabela
+sqlplus aluno@orcl
+
+CREATE TABLE cinema ( 
+  ID   NUMBER PRIMARY KEY , 
+  USER_ID       VARCHAR2(30), 
+  MOVIE_ID      VARCHAR2(30), 
+  RATING        DECIMAL, 
+  TIMESTAMP     VARCHAR2(256) );
+
+
+# Fazer download do arquivo para carga de dados.
+http://files.grouplens.org/datasets/movielens/ml-20m.zip
+unzip ml-20m.zip
+
+
+# Para carregar dados no Oracle, usamos o SQL*Loader. Este aplicativo requer um control file conforme abaixo:
+
+mkdir ˜/etl
+cd ˜/etl
+
+gedit loader.dat
+
+load data
+INFILE '/home/oracle/Downloads/ml-20m/ratings.csv'
+INTO TABLE cinema
+APPEND
+FIELDS TERMINATED BY ','
+trailing nullcols
+(id SEQUENCE (MAX,1),
+ user_id CHAR(30),
+ movie_id CHAR(30),
+ rating   decimal external,
+ timestamp  char(256))
+
+
+# Executando o SQL*Loader
+sqlldr userid=aluno/dsahadoop control=loader.dat log=loader.log
+
+
+# Verificando os dados
+sqlplus aluno@orcl
+
+select count(*) from cinema;
+
+

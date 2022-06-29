@@ -1,0 +1,160 @@
+# Oracle 19c - Instalação
+
+
+1- Efetuar login como usuário root.
+
+
+2- Atualizar o SO:
+
+yum update -y
+
+
+3- Editar o arquivos /etc/hosts e incluir o nome da máquina como FQDN com o ip da máquina virtual (não usar localhost).
+
+
+4- Editar o arquivo /etc/sysctl.conf e incluir as linhas abaixo.
+
+# Oracle
+fs.file-max = 6815744
+kernel.sem = 250 32000 100 128
+kernel.shmmni = 4096
+kernel.shmall = 1073741824
+kernel.shmmax = 4398046511104
+kernel.panic_on_oops = 1
+net.core.rmem_default = 262144
+net.core.rmem_max = 4194304
+net.core.wmem_default = 262144
+net.core.wmem_max = 1048576
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
+fs.aio-max-nr = 1048576
+net.ipv4.ip_local_port_range = 9000 65500
+
+
+5- Efetivar as alterações do item 4: /sbin/sysctl -p
+
+
+6- Adicionar as linhas abaixo para o arquivo /etc/security/limits.conf
+
+# Oracle
+oracle   soft   nofile    1024
+oracle   hard   nofile    65536
+oracle   soft   nproc    16384
+oracle   hard   nproc    16384
+oracle   soft   stack    10240
+oracle   hard   stack    32768
+oracle   hard   memlock    134217728
+oracle   soft   memlock    134217728
+
+
+7- Instalar os pacotes abaixo no SO.
+
+yum install -y bc binutils compat-libcap1 compat-libstdc++-33 elfutils-libelf elfutils-libelf-devel fontconfig-devel glibc glibc-devel ksh libaio libaio-devel libdtrace-ctf-devel libXrender libXrender-devel libX11 libXau libXi libXtst libgcc librdmacm-devel libstdc++ libstdc++-devel libxcb make net-tools nfs-utils smartmontools sysstat unixODBC
+
+
+8- Criar os grupos no SO.
+
+groupadd -g 54321 oinstall
+groupadd -g 54322 dba
+groupadd -g 54323 oper
+
+
+9- Adicionar usuário owner da instalação Oracle.
+
+useradd -u 54321 -g oinstall -G dba,oper oracle
+passwd oracle
+
+
+10- Editar o arquivo /etc/selinux/config e adicionar a linha abaixo.
+
+SELINUX=permissive
+
+E então executar: setenforce Permissive
+
+
+11- Desativar o firewall.
+
+systemctl stop firewalld
+systemctl disable firewalld
+
+
+12- Criar os diretórios de instalação.
+
+mkdir -p /u01/app/oracle/product/19.0.0/dbhome_1
+mkdir -p /u02/oradata
+chown -R oracle:oinstall /u01 /u02
+chmod -R 775 /u01 /u02
+
+
+13- Criar um diretório de scripts.
+
+mkdir /home/oracle/scripts
+
+
+14- Criar o arquivo de variáveis do usuário Oracle e incluir as linhas abaixo.
+
+gedit /home/oracle/scripts/setEnv.sh
+
+# Oracle
+export TMP=/tmp
+export TMPDIR=$TMP
+export ORACLE_HOSTNAME=dataserver.localdomain
+export ORACLE_UNQNAME=orcl
+export ORACLE_BASE=/u01/app/oracle
+export ORACLE_HOME=$ORACLE_BASE/product/19.0.0/dbhome_1
+export ORA_INVENTORY=/u01/app/oraInventory
+export ORACLE_SID=orcl
+export DATA_DIR=/u02/oradata
+export PATH=/usr/sbin:/usr/local/bin:$PATH
+export PATH=$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib
+export CLASSPATH=$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
+
+
+15- Adicionamos às variáveis de ambiente ao arquivo e profile do usuário oracle.
+
+echo ". /home/oracle/scripts/setEnv.sh" >> /home/oracle/.bash_profile
+
+
+16- Efetuar login como usuário oracle e fazer download do Oracle 19c (2.8 GB)
+https://www.oracle.com/database/technologies/oracle19c-linux-downloads.html
+
+cd $ORACLE_HOME
+unzip -oq /home/oracle/Downloads/LINUX.X64_193000_db_home.zip
+
+./runInstaller
+
+Obs: Se receber mensagem de erro durante a instalação, abra um terminal e adicione as linhas abaixo no arquivo /home/oracle/.bashrc e não esqueça de executar source .bashrc. Depois clique em Retry no instalador.
+
+# Java JDK
+export JAVA_HOME=/opt/jdk
+export PATH=$PATH:$JAVA_HOME/bin
+
+
+17 - Checar o status e iniciar o listener.
+
+lsnrctl status
+lsnrctl start
+lsnrctl stop
+
+
+18- Conectar no Banco de Dados e executar os comandos abaixo para registrar o banco no listener (use o ip da sua VM).
+
+sqlplus / as sysdba
+show parameter local_listener
+alter system set local_listener='(ADDRESS=(PROTOCOL=TCP)(HOST=192.168.122.1)(PORT=1539))';
+ALTER SYSTEM REGISTER;
+
+
+19- Criar o arquivo /u01/app/oracle/product/19.0.0/dbhome_1/network/admin/tnsnames.ora com este conteúdo:
+
+orcl= 
+ (DESCRIPTION= 
+   (ADDRESS=(PROTOCOL=tcp)(HOST=dataserver.localdomain)(PORT=1539))
+   (CONNECT_DATA= 
+     (SERVICE_NAME=orcl))) 
+
+
+20- Testar a conexão.
+
+
