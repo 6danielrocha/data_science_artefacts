@@ -1,0 +1,18 @@
+Mini-Projeto 4 - Data App - Dashboard Interativo Para Análise de Chamados de Suporte
+
+Para executar o Dashboard:
+
+1- Instale o Anaconda Python no seu computador.
+
+2- No terminal ou prompt de comando, instale os pacotes abaixo:
+
+pip install dash
+pip install dash_bootstrap_components
+
+3- No terminal ou prompt de comando, na pasta onde estão os arquivos, execute a data app:
+
+python dataapp.py
+
+4- Copie o endereço que aparece no terminal e abra no navegador.
+
+5- Explore a Data App.
